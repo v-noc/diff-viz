@@ -16,7 +16,7 @@ install-backend:
 
 .PHONY: run-backend
 run-backend:
-	cd $(PY_BACKEND_DIR) && uv run python hello.py
+	cd $(PY_BACKEND_DIR) && uv run uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 
 .PHONY: install-frontend
 install-frontend:
