@@ -3,7 +3,6 @@ import InitialPage from "./features/InitalPage";
 import DiffPage from "./features/DiffPage";
 import type { Branches } from "./type";
 import { fetchBranches } from "./services/branch";
-import { ApiError } from "./lib/api";
 
 type Page = "initial" | "diff";
 
@@ -39,24 +38,8 @@ function App() {
 
       setPage("diff");
     } catch (err) {
-      let message = "Failed to load branches.";
-
-      if (err instanceof ApiError) {
-        const data = err.response as unknown;
-        if (
-          data &&
-          typeof data === "object" &&
-          "detail" in data &&
-          typeof (data as { detail?: unknown }).detail === "string"
-        ) {
-          message = (data as { detail: string }).detail;
-        } else if (err.message) {
-          message = err.message;
-        }
-      } else if (err instanceof Error) {
-        message = err.message;
-      }
-
+      const message =
+        err instanceof Error ? err.message : "Failed to load branches.";
       setInitialError(message);
     } finally {
       setIsCheckingRepo(false);

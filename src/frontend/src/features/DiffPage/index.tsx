@@ -1,10 +1,15 @@
 import type { FC } from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Branches } from "../../type";
 import DiffPageHeader from "./components/DiffPageHeader";
 import RepoPathInfo from "./components/RepoPathInfo";
 import BranchSelect from "./components/BranchSelect";
 import ProjectTree from "./ProjectTree/ProjectTree";
+import type { ProjectTreeNode } from "./ProjectTree/types";
+import { demoProjectTree } from "./ProjectTree/demoData";
+import { demoDiffByPath, resolveDemoPath } from "./demoDiff";
+import { Diff, Hunk, parseDiff } from "react-diff-view";
+import "react-diff-view/style/index.css";
 
 interface DiffPageProps {
   repoPath: string;
@@ -22,6 +27,23 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
     branches.find((b) => !b.is_current)?.name ?? branches[0]?.name ?? ""
   );
 
+  const [selectedNode, setSelectedNode] = useState<ProjectTreeNode | null>(
+    demoProjectTree[0] ?? null
+  );
+
+  const selectedPath = resolveDemoPath(selectedNode);
+  const diffText = demoDiffByPath[selectedPath];
+
+  const diffFile = useMemo(() => {
+    if (!diffText) return null;
+    try {
+      const files = parseDiff(diffText);
+      return files[0] ?? null;
+    } catch {
+      return null;
+    }
+  }, [diffText]);
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-6 md:px-8">
@@ -35,7 +57,7 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
         <main className="flex-1 py-4">
           <div className="flex h-full gap-4">
             <aside className="hidden w-72 shrink-0 md:block">
-              <ProjectTree />
+              <ProjectTree onSelectNode={setSelectedNode} />
             </aside>
 
             <div className="flex flex-1 flex-col gap-4">
@@ -67,14 +89,37 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
                       </span>
                     )}
                   </p>
+                  {selectedPath && (
+                    <span className="text-xs text-muted-foreground">
+                      {selectedPath}
+                    </span>
+                  )}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Use the dropdowns above to choose the base and compare
                   branches.
                 </p>
-                <div className="mt-4 flex flex-1 items-center justify-center rounded-md border border-dashed border-muted-foreground/40 bg-muted/30 p-4 text-center text-xs text-muted-foreground">
-                  Diff preview will appear here.
-                </div>
+                {diffFile ? (
+                  <div className="mt-4 flex-1 overflow-hidden rounded-md border bg-background text-xs">
+                    <div className="h-full overflow-auto">
+                      <Diff
+                        viewType="split"
+                        diffType={diffFile.type}
+                        hunks={diffFile.hunks}
+                      >
+                        {(hunks) =>
+                          hunks.map((hunk) => (
+                            <Hunk key={hunk.content} hunk={hunk} />
+                          ))
+                        }
+                      </Diff>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-4 flex flex-1 items-center justify-center rounded-md border border-dashed border-muted-foreground/40 bg-muted/30 p-4 text-center text-xs text-muted-foreground">
+                    Diff preview will appear here.
+                  </div>
+                )}
               </div>
             </div>
           </div>
