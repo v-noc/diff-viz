@@ -1,56 +1,9 @@
-## Monorepo: Python Backend (uv) + React Frontend (Vite)
+# Git Diff Visualizer (Prototype)
 
-This repo contains:
-- `src/backend` — Python backend managed by **uv**
-- `src/frontend` — React + TypeScript + Vite frontend
+This is a prototype UI for a Git diff visualizer that I originally planned for [v-no](https://github.com/v-noc/IDE). Its goal is to minimize noise in diffs and show changes at the function/class level, instead of forcing you to read large blocks of raw text. By structuring diffs this way, we can make it easier and faster for both humans and LLMs to understand changes.
 
-### Requirements
+Right now, this prototype:
+- Only supports **local repositories**
+- Focuses purely on **visualization** (no editing or workflow actions yet)
 
-- Python >= 3.12
-- [uv](https://docs.astral.sh/uv/) installed (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
-- Node.js + Corepack (or Yarn) for the frontend
-
-### Backend (Python with uv)
-
-From the repo root:
-
-```bash
-make install-backend   # install backend dependencies with uv
-make run-backend       # run the backend app
-```
-
-Inside `src/backend` you can also use uv directly, for example:
-
-```bash
-cd src/backend
-uv sync               # create/update the virtual env
-uv run python hello.py
-```
-
-Backend entry point: `hello.py` (simple "Hello from backend!" script for now).
-
-### Frontend (React + Vite)
-
-From the repo root:
-
-```bash
-make install-frontend  # install frontend dependencies with yarn
-make dev-frontend      # start Vite dev server
-make build-frontend    # build frontend for production
-```
-
-Or from `src/frontend`:
-
-```bash
-cd src/frontend
-yarn install
-yarn dev
-```
-
-### Monorepo Layout
-
-- `src/backend` — Python backend, configured via `pyproject.toml` and managed with uv
-- `src/frontend` — React + TypeScript app using Vite
-- `Makefile` — convenience commands for working with both projects
-
-
+In the future, this could evolve into a extension, desktop app, or CLI tool. The vision is to support richer workflows like **approving changes function-by-function or class-by-class**, instead of approving or rejecting an entire file or pull request at once.
