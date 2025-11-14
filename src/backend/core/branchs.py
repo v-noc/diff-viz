@@ -5,6 +5,7 @@ import git
 class Branches(BaseModel):
     name: str
     is_current: bool
+    is_default: bool
 
 
 def get_branches(repo_path: str) -> list[Branches]:
@@ -26,7 +27,8 @@ def get_branches(repo_path: str) -> list[Branches]:
         branches.append(
             Branches(
                 name=branch.name,
-                is_current=branch.name == repo.active_branch.name
+                is_current=branch.name == repo.active_branch.name,
+                is_default=branch.name == repo.head.reference.name
             )
         )
 

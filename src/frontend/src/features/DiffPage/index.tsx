@@ -1,13 +1,12 @@
 import type { FC } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Branches } from "../../type";
 import DiffPageHeader from "./components/DiffPageHeader";
 import RepoPathInfo from "./components/RepoPathInfo";
 import BranchSelect from "./components/BranchSelect";
 import ProjectTree from "./ProjectTree/ProjectTree";
 import type { ProjectTreeNode } from "./ProjectTree/types";
-import { demoProjectTree } from "./ProjectTree/demoData";
-import { demoDiffByPath, resolveDemoPath } from "./demoDiff";
+import { fetchDiffTree } from "../../services/diifs";
 import { Diff, Hunk, parseDiff } from "react-diff-view";
 import "react-diff-view/style/index.css";
 
@@ -18,31 +17,74 @@ interface DiffPageProps {
 }
 
 const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
-  const currentBranch = branches.find((b) => b.is_current);
+  const currentBranch = branches.find((b) => b.is_default);
 
   const [baseBranch, setBaseBranch] = useState(
     currentBranch?.name ?? branches[0]?.name ?? ""
   );
   const [compareBranch, setCompareBranch] = useState(
-    branches.find((b) => !b.is_current)?.name ?? branches[0]?.name ?? ""
+    branches.find((b) => b.is_current || !b.is_default)?.name ??
+      branches[0]?.name ??
+      ""
   );
 
+  const [treeNodes, setTreeNodes] = useState<ProjectTreeNode[]>([]);
   const [selectedNode, setSelectedNode] = useState<ProjectTreeNode | null>(
-    demoProjectTree[0] ?? null
+    null
   );
+  const [isLoadingDiff, setIsLoadingDiff] = useState(false);
+  const [diffError, setDiffError] = useState<string | null>(null);
 
-  const selectedPath = resolveDemoPath(selectedNode);
-  const diffText = demoDiffByPath[selectedPath];
+  useEffect(() => {
+    if (!repoPath || !baseBranch || !compareBranch) return;
+
+    let isCancelled = false;
+    setIsLoadingDiff(true);
+    setDiffError(null);
+
+    fetchDiffTree(repoPath, baseBranch, compareBranch)
+      .then((data) => {
+        if (isCancelled) return;
+        setTreeNodes(data ?? []);
+        if (data && data.length > 0) {
+          setSelectedNode(data[0]);
+        } else {
+          setSelectedNode(null);
+        }
+      })
+      .catch((err) => {
+        if (isCancelled) return;
+        const message =
+          err instanceof Error ? err.message : "Failed to load diff tree.";
+        setDiffError(message);
+        setTreeNodes([]);
+        setSelectedNode(null);
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsLoadingDiff(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [repoPath, baseBranch, compareBranch]);
+
+  const diffText = selectedNode?.source ?? "";
 
   const diffFile = useMemo(() => {
     if (!diffText) return null;
     try {
+      console.log(diffText);
       const files = parseDiff(diffText);
       return files[0] ?? null;
     } catch {
       return null;
     }
   }, [diffText]);
+
+  const selectedPath = selectedNode?.path || selectedNode?.label || "";
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -57,7 +99,11 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
         <main className="flex-1 py-4">
           <div className="flex h-full gap-4">
             <aside className="hidden w-72 shrink-0 md:block">
-              <ProjectTree onSelectNode={setSelectedNode} />
+              <ProjectTree
+                nodes={treeNodes}
+                selectedId={selectedNode?.id ?? null}
+                onSelectNode={setSelectedNode}
+              />
             </aside>
 
             <div className="flex flex-1 flex-col gap-4">
@@ -99,6 +145,14 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
                   Use the dropdowns above to choose the base and compare
                   branches.
                 </p>
+                {isLoadingDiff && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Loading diff tree…
+                  </p>
+                )}
+                {diffError && (
+                  <p className="mt-1 text-xs text-red-500">{diffError}</p>
+                )}
                 {diffFile ? (
                   <div className="mt-4 flex-1 overflow-hidden rounded-md border bg-background text-xs">
                     <div className="h-full overflow-auto">

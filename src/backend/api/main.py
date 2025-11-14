@@ -3,9 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from core.branchs import Branches, get_branches
-from core.diff_to_tree import ProjectTreeNode
-
-from core.diff_to_tree import build_project_tree_from_branch_diff
+from core.diff_to_tree import ProjectTreeNode, diff_to_tree
 
 
 class BranchRequest(BaseModel):
@@ -50,10 +48,11 @@ async def diff_tree(payload: DiffTreeRequest) -> list[ProjectTreeNode]:
     """Return the diff tree for the given repository path."""
 
     try:
-        diff_tree = build_project_tree_from_branch_diff(
-            payload.repo_path, payload.base_branch, payload.compare_branch)
+        tree = diff_to_tree(
+            payload.repo_path, payload.base_branch, payload.compare_branch
+        )
     except ValueError as exc:
         # Surface a clear 400 error when the path is not a valid git repository
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    return diff_tree
+    return tree
