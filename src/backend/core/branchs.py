@@ -7,7 +7,7 @@ class Branches(BaseModel):
     is_current: bool
 
 
-def get_branchs(repo_path: str) -> list[Branches]:
+def get_branches(repo_path: str) -> list[Branches]:
     """Return branches for the given repository path.
 
     Raises

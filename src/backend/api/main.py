@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from core.branchs import Branches, get_branchs
+from core.branchs import Branches, get_branches
 
 
 class BranchRequest(BaseModel):
@@ -28,7 +28,7 @@ async def health() -> dict:
 async def branch_from_body(payload: BranchRequest) -> list[Branches]:
     """Return branches for the repository defined in the request body."""
     try:
-        branches = get_branchs(payload.repo_path)
+        branches = get_branches(payload.repo_path)
     except ValueError as exc:
         # Surface a clear 400 error when the path is not a valid git repository
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -36,11 +36,4 @@ async def branch_from_body(payload: BranchRequest) -> list[Branches]:
     return branches
 
 
-@app.get("/branch/{repo_path:str}", response_model=list[Branches])
-async def branch(repo_path: str) -> list[Branches]:
-    try:
-        branches = get_branchs(repo_path)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    return branches
+@app.post("/diff-tree")
