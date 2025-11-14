@@ -1,5 +1,12 @@
 import type { FC } from "react";
-import { ChevronDown, ChevronRight, FileText, Folder } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  Folder,
+  FunctionSquare,
+  LayoutPanelTop,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import type { ProjectTreeNode } from "./types";
@@ -12,7 +19,18 @@ interface ProjectTreeItemProps {
   onToggle: (id: string) => void;
   onSelect: (node: ProjectTreeNode) => void;
 }
-
+const getIcon = (node: ProjectTreeNode) => {
+  switch (node.kind) {
+    case "folder":
+      return <Folder className="h-3 w-3 text-muted-foreground" />;
+    case "file":
+      return <FileText className="h-3 w-3 text-muted-foreground" />;
+    case "function":
+      return <FunctionSquare className="h-3 w-3 text-muted-foreground" />;
+    case "class":
+      return <LayoutPanelTop className="h-3 w-3 text-muted-foreground" />;
+  }
+};
 const statusToVariant: Record<
   NonNullable<ProjectTreeNode["status"]>,
   "default" | "secondary" | "destructive" | "outline"
@@ -23,10 +41,7 @@ const statusToVariant: Record<
   unchanged: "outline",
 };
 
-const statusToLabel: Record<
-  NonNullable<ProjectTreeNode["status"]>,
-  string
-> = {
+const statusToLabel: Record<NonNullable<ProjectTreeNode["status"]>, string> = {
   added: "Added",
   removed: "Removed",
   modified: "Modified",
@@ -73,12 +88,10 @@ const ProjectTreeItem: FC<ProjectTreeItemProps> = ({
           ) : (
             <ChevronRight className="h-3 w-3 text-muted-foreground" />
           )
-        ) : node.kind === "folder" ? (
-          <Folder className="h-3 w-3 text-muted-foreground" />
         ) : (
-          <FileText className="h-3 w-3 text-muted-foreground" />
+          getIcon(node)
         )}
-        <span className="truncate">{node.label}</span>
+        <span className="truncate">{node.label.slice(0, 20)}</span>
       </span>
       {node.status && (
         <Badge
@@ -119,5 +132,3 @@ const ProjectTreeItem: FC<ProjectTreeItemProps> = ({
 };
 
 export default ProjectTreeItem;
-
-

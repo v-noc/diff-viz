@@ -73,7 +73,7 @@ const ProjectTree: FC<ProjectTreeProps> = ({
   return (
     <div
       className={cn(
-        "flex h-full flex-col rounded-lg border bg-card/80",
+        "flex h-full min-h-0 flex-col rounded-lg border bg-card/80",
         className
       )}
     >
@@ -83,7 +83,7 @@ const ProjectTree: FC<ProjectTreeProps> = ({
         </p>
         <span className="text-[10px] text-muted-foreground">{flatCount}</span>
       </div>
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="px-2 py-2">
           {treeData.map((node) => (
             <ProjectTreeItem
@@ -102,5 +102,3 @@ const ProjectTree: FC<ProjectTreeProps> = ({
 };
 
 export default ProjectTree;
-
-
