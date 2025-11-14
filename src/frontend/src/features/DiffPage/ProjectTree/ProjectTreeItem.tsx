@@ -91,7 +91,11 @@ const ProjectTreeItem: FC<ProjectTreeItemProps> = ({
         ) : (
           getIcon(node)
         )}
-        <span className="truncate">{node.label.slice(0, 20)}</span>
+        <span className="truncate">
+          {node.label.length > 25
+            ? node.label.slice(0, 25) + "..."
+            : node.label}
+        </span>
       </span>
       {node.status && (
         <Badge
