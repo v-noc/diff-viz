@@ -8,6 +8,7 @@ import type { ProjectTreeNode } from "./types";
 import { Toggle } from "@/components/ui/toggle";
 import { FolderTree } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import ProjectTreeFilterPopover from "./ProjectTreeFilterPopover";
 
 interface ProjectTreeProps {
   /**
@@ -129,6 +130,8 @@ const ProjectTree: FC<ProjectTreeProps> = ({
       <div className="border-b px-3 py-2 flex flex-row gap-1 items-center w-full">
         <Input className="w-full" placeholder="Search" />
 
+        <ProjectTreeFilterPopover />
+
         <Toggle
           size="sm"
           pressed={viewMode === "tree"}
@@ -136,7 +139,7 @@ const ProjectTree: FC<ProjectTreeProps> = ({
             handleViewModeChange(pressed ? "tree" : "flat")
           }
           aria-label="Toggle tree view"
-          className=" data-[state=on]:bg-black  data-[state=on]:*:[svg]:stroke-white"
+          className="data-[state=on]:bg-black data-[state=on]:*:[svg]:stroke-white"
         >
           <FolderTree />
         </Toggle>
