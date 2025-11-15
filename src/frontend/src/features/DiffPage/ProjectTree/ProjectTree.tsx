@@ -30,7 +30,7 @@ interface ProjectTreeProps {
   emptyMessage?: string;
 }
 // kkk
-const ProjectTree: FC<ProjectTreeProps> = ({
+const ProjectTree = ({
   nodes,
   selectedId: controlledSelectedId,
   onSelectNode,
