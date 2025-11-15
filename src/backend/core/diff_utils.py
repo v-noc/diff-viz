@@ -59,7 +59,7 @@ def build_file_diff_source(
 
 
 def build_project_tree_from_branch_diff(
-    repo: git.Repo, base_branch: str, compare_branch: str
+    repo: git.Repo, base_branch: str, compare_branch: str, tree_mode: str
 ) -> list[ProjectTreeNode]:
     """
     Build a tree of changed files/definitions between two branches.
@@ -89,6 +89,8 @@ def build_project_tree_from_branch_diff(
     if not diff_index:
         return []
 
+    # First collect a flat list of file‑level nodes; we'll wrap these in a
+    # folder hierarchy once we've processed the whole diff.
     file_nodes: List[ProjectTreeNode] = []
 
     for diff_item in diff_index:
@@ -270,4 +272,60 @@ def build_project_tree_from_branch_diff(
         file_node.children = children
         file_nodes.append(file_node)
 
-    return file_nodes
+    if tree_mode == "flat":
+        return file_nodes
+
+    # Build a folder hierarchy from the flat list of file nodes.
+    # For a path like "src/backend/core/diff_utils.py" we create folder
+    # nodes "src", "src/backend", "src/backend/core" and attach the file
+    # node as a child of the deepest folder.
+    root_nodes: List[ProjectTreeNode] = []
+    dir_nodes: dict[str, ProjectTreeNode] = {}
+
+    for file_node in file_nodes:
+        parts = file_node.path.split("/")
+
+        # Files at the repository root go directly under root_nodes.
+        parent_children: List[ProjectTreeNode] = root_nodes
+        parent_path = ""
+
+        # Create/lookup folder nodes for all but the last path part
+        # (which is the filename).
+        for part in parts[:-1]:
+            dir_path = part if not parent_path else f"{parent_path}/{part}"
+            folder_node = dir_nodes.get(dir_path)
+            if folder_node is None:
+                folder_node = ProjectTreeNode(
+                    id=dir_path,
+                    label=part,
+                    kind="folder",
+                    # Any folder that appears in the diff contains changes.
+                    status="modified",
+                    code_position=CodePosition(
+                        start_line=0,
+                        end_line=0,
+                        start_column=0,
+                        end_column=0,
+                    ),
+                    path=dir_path,
+                    source="",
+                )
+                dir_nodes[dir_path] = folder_node
+                parent_children.append(folder_node)
+
+            parent_children = folder_node.children
+            parent_path = dir_path
+
+        # Attach the file node to the deepest folder (or root).
+        parent_children.append(file_node)
+
+    # Sort folders/files alphabetically, with folders first at each level.
+    def _sort_children(nodes: List[ProjectTreeNode]) -> None:
+        nodes.sort(key=lambda n: (n.kind != "folder", n.label.lower()))
+        for node in nodes:
+            if node.children:
+                _sort_children(node.children)
+
+    _sort_children(root_nodes)
+
+    return root_nodes

@@ -5,6 +5,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import ProjectTreeItem from "./ProjectTreeItem";
 import type { ProjectTreeNode } from "./types";
+import { Toggle } from "@/components/ui/toggle";
+import { FolderTree } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 interface ProjectTreeProps {
   /**
@@ -19,6 +22,10 @@ interface ProjectTreeProps {
    * Called when a node is clicked. You can use this to sync selection and drive the diff view.
    */
   onSelectNode?: (node: ProjectTreeNode) => void;
+  /**
+   * Called when view mode changes between flat and tree.
+   */
+  onViewModeChange?: (mode: "flat" | "tree") => void;
   className?: string;
   /**
    * Whether the tree data is currently loading.
@@ -28,25 +35,34 @@ interface ProjectTreeProps {
    * Optional message to show when there are no nodes.
    */
   emptyMessage?: string;
+  /**
+   * Current view mode for the tree.
+   */
+  viewMode?: "flat" | "tree";
 }
 
 const ProjectTree: FC<ProjectTreeProps> = ({
   nodes,
   selectedId: controlledSelectedId,
   onSelectNode,
+  onViewModeChange,
   className,
   isLoading,
   emptyMessage,
+  viewMode: controlledViewMode,
 }) => {
   const treeData = useMemo(
     () => (nodes && nodes.length > 0 ? nodes : []),
-
     [nodes]
   );
 
   const [uncontrolledSelectedId, setUncontrolledSelectedId] = useState<
     string | null
   >(treeData[0]?.id ?? null);
+
+  const [uncontrolledViewMode, setUncontrolledViewMode] = useState<
+    "flat" | "tree"
+  >("flat");
 
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
     const initial = new Set<string>();
@@ -56,6 +72,7 @@ const ProjectTree: FC<ProjectTreeProps> = ({
   });
 
   const selectedId = controlledSelectedId ?? uncontrolledSelectedId;
+  const viewMode = controlledViewMode ?? uncontrolledViewMode;
 
   const handleToggle = (id: string) => {
     setExpandedIds((prev) => {
@@ -75,6 +92,13 @@ const ProjectTree: FC<ProjectTreeProps> = ({
       setUncontrolledSelectedId(node.id);
     }
     onSelectNode?.(node);
+  };
+
+  const handleViewModeChange = (mode: "flat" | "tree") => {
+    if (!controlledViewMode) {
+      setUncontrolledViewMode(mode);
+    }
+    onViewModeChange?.(mode);
   };
 
   const flatCount = useMemo(() => {
@@ -101,6 +125,23 @@ const ProjectTree: FC<ProjectTreeProps> = ({
           {isLoading ? "…" : flatCount}
         </span>
       </div>
+
+      <div className="border-b px-3 py-2 flex flex-row gap-1 items-center w-full">
+        <Input className="w-full" placeholder="Search" />
+
+        <Toggle
+          size="sm"
+          pressed={viewMode === "tree"}
+          onPressedChange={(pressed) =>
+            handleViewModeChange(pressed ? "tree" : "flat")
+          }
+          aria-label="Toggle tree view"
+          className=" data-[state=on]:bg-black  data-[state=on]:*:[svg]:stroke-white"
+        >
+          <FolderTree />
+        </Toggle>
+      </div>
+
       <ScrollArea className="flex-1 min-h-0">
         <div className="px-2 py-2">
           {isLoading ? (

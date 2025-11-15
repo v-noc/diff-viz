@@ -9,6 +9,8 @@ import type { ProjectTreeNode } from "./ProjectTree/types";
 import { fetchDiffTree } from "../../services/diifs";
 import { Diff, Hunk, parseDiff } from "react-diff-view";
 import "react-diff-view/style/index.css";
+import { Button } from "@/components/ui/button";
+import { ArrowLeftRight } from "lucide-react";
 
 interface DiffPageProps {
   repoPath: string;
@@ -34,6 +36,7 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
   );
   const [isLoadingDiff, setIsLoadingDiff] = useState(false);
   const [diffError, setDiffError] = useState<string | null>(null);
+  const [treeMode, setTreeMode] = useState<"flat" | "tree">("flat");
 
   useEffect(() => {
     if (!repoPath || !baseBranch || !compareBranch) return;
@@ -44,7 +47,7 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
         if (isCancelled) return;
         setIsLoadingDiff(true);
         setDiffError(null);
-        return fetchDiffTree(repoPath, baseBranch, compareBranch);
+        return fetchDiffTree(repoPath, baseBranch, compareBranch, treeMode);
       })
       .then((data) => {
         if (isCancelled) return;
@@ -72,7 +75,7 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
     return () => {
       isCancelled = true;
     };
-  }, [repoPath, baseBranch, compareBranch]);
+  }, [repoPath, baseBranch, compareBranch, treeMode]);
 
   const diffText = selectedNode?.source ?? "";
 
@@ -87,6 +90,16 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
   }, [diffText]);
 
   const selectedPath = selectedNode?.path || selectedNode?.label || "";
+
+  const handleSwapBranches = () => {
+    if (!baseBranch || !compareBranch) return;
+    setBaseBranch(compareBranch);
+    setCompareBranch(baseBranch);
+  };
+
+  const handleViewModeChange = (mode: "flat" | "tree") => {
+    setTreeMode(mode);
+  };
 
   return (
     <div className="flex h-screen flex-col bg-background">
@@ -106,6 +119,8 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
                 selectedId={selectedNode?.id ?? null}
                 onSelectNode={setSelectedNode}
                 isLoading={isLoadingDiff}
+                viewMode={treeMode}
+                onViewModeChange={handleViewModeChange}
                 emptyMessage={
                   baseBranch && compareBranch
                     ? "No function or class changes found between these branches."
@@ -115,24 +130,33 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
             </aside>
 
             <div className="flex flex-1 flex-col gap-4">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="flex flex-col gap-1">
+              <div className="flex flex-col ">
+                <div className="flex flex-wrap items-start justify-between">
                   <BranchSelect
                     label="Base branch"
                     branches={branches}
                     value={baseBranch || undefined}
                     onChange={setBaseBranch}
                   />
-                  <RepoPathInfo repoPath={repoPath} />
-                </div>
-                <BranchSelect
-                  label="Compare branch"
-                  branches={branches}
-                  value={compareBranch || undefined}
-                  onChange={setCompareBranch}
-                />
-              </div>
 
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="mt-6"
+                    onClick={handleSwapBranches}
+                    aria-label="Swap base and compare branches"
+                  >
+                    <ArrowLeftRight className="h-4 w-4" />
+                  </Button>
+                  <BranchSelect
+                    label="Compare branch"
+                    branches={branches}
+                    value={compareBranch || undefined}
+                    onChange={setCompareBranch}
+                  />
+                </div>
+                <RepoPathInfo repoPath={repoPath} />
+              </div>
               <div className="flex flex-1 min-h-0 flex-col rounded-lg border bg-card/50 p-4">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium">

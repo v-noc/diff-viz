@@ -5,7 +5,7 @@ from .diff_utils import build_project_tree_from_branch_diff
 
 
 def diff_to_tree(
-    repo_path: str, base_branch: str, compare_branch: str
+    repo_path: str, base_branch: str, compare_branch: str, tree_mode: str
 ) -> list[ProjectTreeNode]:
     """Return a diff tree for the given repository path.
 
@@ -20,6 +20,7 @@ def diff_to_tree(
             repo,
             base_branch,
             compare_branch,
+            tree_mode
         )
     except (git.exc.InvalidGitRepositoryError, git.exc.NoSuchPathError) as exc:
         message = f"{repo_path!r} is not a valid git repository"
