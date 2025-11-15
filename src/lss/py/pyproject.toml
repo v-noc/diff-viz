@@ -1,13 +1,11 @@
 [project]
-name = "backend"
+name = "py"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "fastapi-jsonrpc>=3.4.1",
     "fastapi>=0.121.2",
-    "gitpython>=3.1.45",
-    "pydantic>=2.12.4",
+    "fastapi-jsonrpc>=3.4.1",
     "uvicorn>=0.38.0",
 ]

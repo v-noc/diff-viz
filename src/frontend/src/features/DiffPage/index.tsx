@@ -37,12 +37,15 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
 
   useEffect(() => {
     if (!repoPath || !baseBranch || !compareBranch) return;
-
     let isCancelled = false;
-    setIsLoadingDiff(true);
-    setDiffError(null);
 
-    fetchDiffTree(repoPath, baseBranch, compareBranch)
+    Promise.resolve()
+      .then(() => {
+        if (isCancelled) return;
+        setIsLoadingDiff(true);
+        setDiffError(null);
+        return fetchDiffTree(repoPath, baseBranch, compareBranch);
+      })
       .then((data) => {
         if (isCancelled) return;
         setTreeNodes(data ?? []);
@@ -76,7 +79,6 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
   const diffFile = useMemo(() => {
     if (!diffText) return null;
     try {
-      console.log(diffText);
       const files = parseDiff(diffText);
       return files[0] ?? null;
     } catch {
@@ -88,7 +90,7 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
 
   return (
     <div className="flex h-screen flex-col bg-background">
-      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-6 md:px-8 overflow-hidden">
+      <div className="mx-auto flex w-full  flex-1 flex-col px-4 py-6 md:px-8 overflow-hidden">
         <header className="border-b pb-4">
           <DiffPageHeader
             onBack={onBack}
@@ -103,6 +105,12 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
                 nodes={treeNodes}
                 selectedId={selectedNode?.id ?? null}
                 onSelectNode={setSelectedNode}
+                isLoading={isLoadingDiff}
+                emptyMessage={
+                  baseBranch && compareBranch
+                    ? "No function or class changes found between these branches."
+                    : "Select branches to see function and class changes."
+                }
               />
             </aside>
 

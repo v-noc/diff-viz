@@ -1,5 +1,6 @@
 PY_BACKEND_DIR=src/backend
 FRONTEND_DIR=src/frontend
+LSS_DIR=src/lss
 
 .PHONY: help
 help:
@@ -9,6 +10,8 @@ help:
 	@echo "  make install-frontend  Install frontend deps with yarn"
 	@echo "  make dev-frontend      Start React dev server"
 	@echo "  make build-frontend    Build React app"
+	@echo "  make lss-<target>      Run target from src/lss/Makefile (e.g. lss-py-dev)"
+	@echo "  make dev-all           Run backend + lss/py + lss/js servers"
 
 .PHONY: install-backend
 install-backend:
@@ -29,5 +32,16 @@ dev-frontend:
 .PHONY: build-frontend
 build-frontend:
 	cd $(FRONTEND_DIR) && yarn build
+
+.PHONY: lss-%
+lss-%:
+	$(MAKE) -C $(LSS_DIR) $*
+
+.PHONY: dev-all
+dev-all:
+	$(MAKE) run-backend & \
+	$(MAKE) lss-py-dev & \
+	$(MAKE) lss-js-dev & \
+	wait
 
 

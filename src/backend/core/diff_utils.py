@@ -5,6 +5,14 @@ import git
 
 from .diff_models import CodePosition, ProjectTreeNode, make_code_position
 from .diff_parser import parse_code_structure
+from .language_config import LANGUAGE_CONFIG
+
+
+# Build a lookup from file-extension -> language key (e.g. ".py" -> "python").
+EXTENSION_TO_LANGUAGE: dict[str, str] = {}
+for _lang, _cfg in LANGUAGE_CONFIG.items():
+    for _ext in _cfg["extensions"]:
+        EXTENSION_TO_LANGUAGE[_ext] = _lang
 
 
 def build_def_diff_source(
@@ -87,7 +95,19 @@ def build_project_tree_from_branch_diff(
         # resolve the path (handles renames)
         path = diff_item.b_path or diff_item.a_path
 
-        if not path or not path.endswith(".py"):
+        if not path:
+            continue
+
+        # Detect language by matching the file extension against
+        # LANGUAGE_CONFIG.
+        language = None
+        for ext, lang in EXTENSION_TO_LANGUAGE.items():
+            if path.endswith(ext):
+                language = lang
+                break
+
+        # Skip files whose extension we don't know about
+        if language is None:
             continue
 
         # Get the file content from before (a_blob) and after (b_blob)
@@ -110,8 +130,8 @@ def build_project_tree_from_branch_diff(
             content_compare,
         )
 
-        struct_base = parse_code_structure(content_base)
-        struct_compare = parse_code_structure(content_compare)
+        struct_base = parse_code_structure(content_base, language)
+        struct_compare = parse_code_structure(content_compare, language)
 
         base_keys = set(struct_base.keys())
         compare_keys = set(struct_compare.keys())

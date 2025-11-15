@@ -1,12 +1,17 @@
-import ast
+import json
+import urllib.request
 from typing import Dict
 
+from .language_config import LANGUAGE_CONFIG
 
-def parse_code_structure(source_code: str) -> Dict[str, dict]:
+
+def parse_code_structure(source_code: str, language: str) -> Dict[str, dict]:
     """
-    Parse Python source code into an AST and extract the source text of
-    all functions and classes (including nested ones), along with
-    their types.
+    Parse Python source code into a structured representation.
+
+    First, this tries to delegate to the external JSON-RPC parser
+    (the `parse_python_code` method exposed by the lss/py service).
+    If that call fails for any reason, it falls back to local AST parsing.
 
     Each definition is keyed by a *qualified name* that encodes its
     nesting, e.g.:
@@ -20,54 +25,33 @@ def parse_code_structure(source_code: str) -> Dict[str, dict]:
     if not source_code:
         return structure
 
+    # Try JSON-RPC parser first
+    lang_cfg = LANGUAGE_CONFIG[language]
+    method = lang_cfg["method"]
+    port = lang_cfg["port"]
     try:
-        tree = ast.parse(source_code)
+        payload = {
+            "jsonrpc": "2.0",
+            "method": method,
+            "params": {"code": source_code},
+            "id": 1,
+        }
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{port}/api/v1/jsonrpc",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=1.0) as resp:
+            response_data = json.load(resp)
 
-        def visit(node: ast.AST, parents: list[str]) -> None:
-            for child in ast.iter_child_nodes(node):
-                if isinstance(
-                    child,
-                    (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef),
-                ):
-                    node_type = "class" if isinstance(
-                        child, ast.ClassDef
-                    ) else "function"
-                    # Build a qualified name reflecting the nesting
-                    # structure.
-                    qualname_parts = parents + [child.name]
-                    qualname = ".".join(qualname_parts)
-
-                    # Extract the exact source for this definition and its
-                    # positional information so we can build tree nodes
-                    # that can be highlighted later.
-                    structure[qualname] = {
-                        "type": node_type,
-                        "source": ast.get_source_segment(source_code, child),
-                        "start_line": getattr(child, "lineno", 0),
-                        "end_line": getattr(
-                            child, "end_lineno", getattr(child, "lineno", 0)
-                        ),
-                        "start_column": getattr(child, "col_offset", 0),
-                        "end_column": getattr(
-                            child,
-                            "end_col_offset",
-                            getattr(child, "col_offset", 0),
-                        ),
-                    }
-
-                    # Recurse into the body to pick up further nested defs.
-                    visit(child, qualname_parts)
-                else:
-                    # Keep walking the tree so we can find nested defs
-                    # under other node types (if/for/with/etc.).
-                    visit(child, parents)
-
-        visit(tree, [])
-
-    except (SyntaxError, TypeError):
-        # Gracefully handle files that are not valid Python
+        if isinstance(response_data, dict) and "result" in response_data:
+            result = response_data["result"]
+            if isinstance(result, dict):
+                return result
+    except Exception as e:
+        print(f" Failed to parse code structure: {e} {port} {method} ")
+        # If remote parsing fails, fall back to local AST logic below.
         pass
 
     return structure
-
-
