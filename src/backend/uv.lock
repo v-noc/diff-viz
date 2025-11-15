@@ -2,6 +2,15 @@ version = 1
 requires-python = ">=3.12"
 
 [[package]]
+name = "aiojobs"
+version = "1.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/03/54/751969398e2039b4dc458fa153dc066a0f7337a5b480d58944f59b7b38ae/aiojobs-1.4.0.tar.gz", hash = "sha256:463665c75d1fcc46c78d44375c1034abf5e3f087894b0fc5ec4dd16ef90fdc98", size = 139598 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ce/89/5a30b3c041712a8b2dadb5ccef2bae12a874469650c61c018705039699cd/aiojobs-1.4.0-py3-none-any.whl", hash = "sha256:e95eb0d10d1f6095aefb04d228d2b4b3747514503f26540de722c2228a8500ca", size = 9455 },
+]
+
+[[package]]
 name = "annotated-doc"
 version = "0.0.4"
 source = { registry = "https://pypi.org/simple" }
@@ -39,6 +48,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "fastapi" },
+    { name = "fastapi-jsonrpc" },
     { name = "gitpython" },
     { name = "pydantic" },
     { name = "uvicorn" },
@@ -47,6 +57,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.121.2" },
+    { name = "fastapi-jsonrpc", specifier = ">=3.4.1" },
     { name = "gitpython", specifier = ">=3.1.45" },
     { name = "pydantic", specifier = ">=2.12.4" },
     { name = "uvicorn", specifier = ">=0.38.0" },
@@ -86,6 +97,21 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/fb/48/f08f264da34cf160db82c62ffb335e838b1fc16cbcc905f474c7d4c815db/fastapi-0.121.2.tar.gz", hash = "sha256:ca8e932b2b823ec1721c641e3669472c855ad9564a2854c9899d904c2848b8b9", size = 342944 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/eb/23/dfb161e91db7c92727db505dc72a384ee79681fe0603f706f9f9f52c2901/fastapi-0.121.2-py3-none-any.whl", hash = "sha256:f2d80b49a86a846b70cc3a03eb5ea6ad2939298bf6a7fe377aa9cd3dd079d358", size = 109201 },
+]
+
+[[package]]
+name = "fastapi-jsonrpc"
+version = "3.4.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aiojobs" },
+    { name = "fastapi" },
+    { name = "pydantic" },
+    { name = "starlette" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7f/d8/95f0a6041ed4900b1b5e8a5edcdc79169711421359188a2c30b4c9d8762e/fastapi_jsonrpc-3.4.1.tar.gz", hash = "sha256:3a0933003ae1c8baaea957ef9963508f2b0a20fd0053291f94883aee2ee2718f", size = 19644 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3f/19/ebaf4486722822d1e21b64000ed0b1ccec8d56719174c4819c41d2b755b4/fastapi_jsonrpc-3.4.1-py3-none-any.whl", hash = "sha256:5c3466a342701863440928a3f7767a77fc7ee5eaa82b00c867465af3dc369eba", size = 20026 },
 ]
 
 [[package]]
