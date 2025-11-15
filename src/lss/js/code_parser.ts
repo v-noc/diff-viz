@@ -1,77 +1,95 @@
-import { parse } from "@babel/parser"
-import traverse from "@babel/traverse"
-// parse_code.ts
+import { parse } from "@babel/parser";
+import traverse, { NodePath } from "@babel/traverse";
+import * as t from "@babel/types";
 
 interface NodeMeta {
-    type: "function" | "class"
-    source: string
-    start_line: number
-    end_line: number
-    start_column: number
-    end_column: number
+    type: "function" | "class";
+    source: string;
+    start_line: number;
+    end_line: number;
+    start_column: number;
+    end_column: number;
 }
 
-export function parseCode(code: string): Record<string, NodeMeta> {
-    const structure: Record<string, NodeMeta> = {}
+/**
+ * Gets the "name" of a function or class node, even if it's an anonymous
+ * expression assigned to a variable or a class method.
+ */
+function getNodeName(path: NodePath): string {
+    const { node, parent } = path;
 
-    if (!code.trim()) return structure
+    // Handles `function MyFunc() {}` and `class MyClass {}`
+    if ("id" in node && node.id) {
+        return node.id.name;
+    }
+
+    // Handles `const MyFunc = () => {}`
+    if (t.isVariableDeclarator(parent) && t.isIdentifier(parent.id)) {
+        return parent.id.name;
+    }
+
+    // Handles `class A { myMethod() {} }` and `const obj = { myMethod() {} }`
+    if (t.isClassMethod(node) || t.isObjectMethod(node)) {
+        if (t.isIdentifier(node.key)) {
+            return node.key.name;
+        }
+    }
+
+    return "(anonymous)";
+}
+
+/**
+ * A direct TypeScript/Babel equivalent of the provided Python AST parser.
+ */
+export function parseCode(code: string): Record<string, NodeMeta> {
+    const structure: Record<string, NodeMeta> = {};
+    if (!code.trim()) return structure;
 
     const ast = parse(code, {
         sourceType: "module",
         plugins: ["typescript", "jsx"],
-    })
+        errorRecovery: true,
+    });
 
-    const parents: string[] = []
+    /**
+     * This is the equivalent of the Python `visit` function. It's a visitor
+     * that will be applied recursively.
+     */
+    const visitor = {
+        "FunctionDeclaration|FunctionExpression|ArrowFunctionExpression|ClassDeclaration|ClassExpression|ClassMethod|ObjectMethod"(
+            path: NodePath<any>
+        ) {
+            const name = getNodeName(path);
+            const isClass = path.isClass() || path.isClassExpression();
 
-    traverse(ast, {
-        enter(path) {
-            if (
-                path.isFunctionDeclaration() ||
-                path.isClassDeclaration() ||
-                path.isFunctionExpression() ||
-                path.isArrowFunctionExpression()
-            ) {
-                const node: any = path.node
-                const isClass = path.isClassDeclaration()
+            // Equivalent to `parents + [child.name]`
+            const qualnameParts = [...(this.parents as string[]), name];
+            const qualname = qualnameParts.join(".");
 
-                const name =
-                    node.id?.name ??
-                    (isClass ? "(anonymous class)" : "(anonymous function)")
+            const { node } = path;
+            const { start, end, loc } = node;
 
-                const qualname = [...parents, name].join(".")
-                const { start, end, loc } = node
+            structure[qualname] = {
+                type: isClass ? "class" : "function",
+                source: code.slice(start ?? 0, end ?? 0),
+                start_line: loc?.start.line ?? 0,
+                end_line: loc?.end.line ?? 0,
+                start_column: loc?.start.column ?? 0,
+                end_column: loc?.end.column ?? 0,
+            };
 
-                const srcSegment = code.slice(start ?? 0, end ?? 0)
+            // Recurse into children with the updated parent context.
+            // This is the direct equivalent of `visit(child, qualname_parts)`.
+            path.traverse(visitor, { parents: qualnameParts });
 
-                structure[qualname] = {
-                    type: isClass ? "class" : "function",
-                    source: srcSegment,
-                    start_line: loc?.start.line ?? 0,
-                    end_line: loc?.end.line ?? 0,
-                    start_column: loc?.start.column ?? 0,
-                    end_column: loc?.end.column ?? 0,
-                }
-            }
+            // We handled the children manually, so skip Babel's default traversal.
+            path.skip();
         },
+    };
 
-        // Maintain class and function nesting hierarchy
-        FunctionDeclaration: {
-            enter(path) {
-                if (path.node.id) parents.push(path.node.id.name)
-            },
-            exit(path) {
-                if (path.node.id) parents.pop()
-            },
-        },
-        ClassDeclaration: {
-            enter(path) {
-                if (path.node.id) parents.push(path.node.id.name)
-            },
-            exit(path) {
-                if (path.node.id) parents.pop()
-            },
-        },
-    })
+    // Start the traversal with an empty parent list.
+    // This is the equivalent of the initial `visit(tree, [])` call.
+    traverse(ast, visitor, undefined, { parents: [] });
 
-    return structure
+    return structure;
 }

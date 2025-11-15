@@ -44,6 +44,7 @@ def parse_code_structure(source_code: str, language: str) -> Dict[str, dict]:
         )
         with urllib.request.urlopen(req, timeout=1.0) as resp:
             response_data = json.load(resp)
+            print(response_data)
 
         if isinstance(response_data, dict) and "result" in response_data:
             result = response_data["result"]
