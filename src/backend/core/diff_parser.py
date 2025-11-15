@@ -1,10 +1,11 @@
-import ast
 import json
 import urllib.request
 from typing import Dict
 
+from .language_config import LANGUAGE_CONFIG
 
-def parse_code_structure(source_code: str) -> Dict[str, dict]:
+
+def parse_code_structure(source_code: str, language: str) -> Dict[str, dict]:
     """
     Parse Python source code into a structured representation.
 
@@ -25,15 +26,18 @@ def parse_code_structure(source_code: str) -> Dict[str, dict]:
         return structure
 
     # Try JSON-RPC parser first
+    lang_cfg = LANGUAGE_CONFIG[language]
+    method = lang_cfg["method"]
+    port = lang_cfg["port"]
     try:
         payload = {
             "jsonrpc": "2.0",
-            "method": "parse_python_code",
+            "method": method,
             "params": {"code": source_code},
             "id": 1,
         }
         req = urllib.request.Request(
-            "http://127.0.0.1:3000/api/v1/jsonrpc",
+            f"http://127.0.0.1:{port}/api/v1/jsonrpc",
             data=json.dumps(payload).encode("utf-8"),
             headers={"Content-Type": "application/json"},
             method="POST",
@@ -45,7 +49,8 @@ def parse_code_structure(source_code: str) -> Dict[str, dict]:
             result = response_data["result"]
             if isinstance(result, dict):
                 return result
-    except Exception:
+    except Exception as e:
+        print(f" Failed to parse code structure: {e} {port} {method} ")
         # If remote parsing fails, fall back to local AST logic below.
         pass
 

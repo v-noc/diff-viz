@@ -11,6 +11,7 @@ help:
 	@echo "  make dev-frontend      Start React dev server"
 	@echo "  make build-frontend    Build React app"
 	@echo "  make lss-<target>      Run target from src/lss/Makefile (e.g. lss-py-dev)"
+	@echo "  make dev-all           Run backend + lss/py + lss/js servers"
 
 .PHONY: install-backend
 install-backend:
@@ -35,5 +36,12 @@ build-frontend:
 .PHONY: lss-%
 lss-%:
 	$(MAKE) -C $(LSS_DIR) $*
+
+.PHONY: dev-all
+dev-all:
+	$(MAKE) run-backend & \
+	$(MAKE) lss-py-dev & \
+	$(MAKE) lss-js-dev & \
+	wait
 
 

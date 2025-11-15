@@ -2,11 +2,26 @@
 import { Elysia } from "elysia";
 import { parseCode } from "./code_parser";
 
+const languageConfig = {
+    typescript: {
+        method: "parse_typescript_code",
+        port: 5001,
+        extensions: [".ts", ".tsx"],
+    },
+    javascript: {
+        method: "parse_javascript_code",
+        port: 5001,
+        extensions: [".js", ".jsx"],
+    },
+} as const;
+
 const rpcMethods = {
     getUser: ({ id }: { id: number }) => ({ id, name: "Alice" }),
     add: ({ a, b }: { a: number; b: number }) => a + b,
-    parse_typescript_code: ({ code }: { code: string }) => parseCode(code),
-    parse_javascript_code: ({ code }: { code: string }) => parseCode(code),
+    [languageConfig.typescript.method]: ({ code }: { code: string }) =>
+        parseCode(code),
+    [languageConfig.javascript.method]: ({ code }: { code: string }) =>
+        parseCode(code),
 };
 
 const app = new Elysia().post("/api/v1/jsonrpc", async ({ body }) => {
@@ -32,5 +47,7 @@ const app = new Elysia().post("/api/v1/jsonrpc", async ({ body }) => {
     }
 });
 
-app.listen(5001);
-console.log("🦊 JSON-RPC server on http://localhost:5001/rpc");
+app.listen(languageConfig.typescript.port);
+console.log(
+    `🦊 JSON-RPC server on http://localhost:${languageConfig.typescript.port}/api/v1/jsonrpc`,
+);
