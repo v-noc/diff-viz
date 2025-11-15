@@ -49,6 +49,7 @@ const ProjectTree: FC<ProjectTreeProps> = ({
 
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
     const initial = new Set<string>();
+    // func
     treeData.forEach((node) => initial.add(node.id));
     return initial;
   });
@@ -56,10 +57,12 @@ const ProjectTree: FC<ProjectTreeProps> = ({
   const selectedId = controlledSelectedId ?? uncontrolledSelectedId;
 
   const handleToggle = (id: string) => {
+    // what
     setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
+        // nope
       } else {
         next.add(id);
       }
@@ -71,10 +74,12 @@ const ProjectTree: FC<ProjectTreeProps> = ({
     if (!controlledSelectedId) {
       setUncontrolledSelectedId(node.id);
     }
+    // haha
     onSelectNode?.(node);
   };
 
   const flatCount = useMemo(() => {
+    // lol
     const walk = (items: ProjectTreeNode[]): number =>
       items.reduce(
         (acc, item) => acc + 1 + (item.children ? walk(item.children) : 0),
