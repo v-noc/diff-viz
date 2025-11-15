@@ -53,16 +53,31 @@ def build_file_diff_source(
 def build_project_tree_from_branch_diff(
     repo: git.Repo, base_branch: str, compare_branch: str
 ) -> list[ProjectTreeNode]:
-    """Build a tree of changed files/definitions between two branches."""
+    """
+    Build a tree of changed files/definitions between two branches.
+
+    We only want to register the *changes made on the compare branch*,
+    not changes that might have happened on the base branch after the
+    branches diverged. To achieve this we diff from the merge base
+    (common ancestor) to the compare branch – equivalent to
+    ``git diff base...compare`` – instead of a direct
+    ``git diff base compare``.
+    """
     try:
         base_commit = repo.commit(base_branch)
         compare_commit = repo.commit(compare_branch)
     except git.exc.BadName as e:
         raise ValueError(f"Could not find a branch or commit: {e}") from e
 
+    # Find the common ancestor so that we only capture changes that
+    # happened on the compare branch since it diverged from the base
+    # branch. This mirrors `git diff base...compare`.
+    merge_bases = repo.merge_base(base_commit, compare_commit)
+    base_for_diff = merge_bases[0] if merge_bases else base_commit
+
     # create_patch=True is required so that diff_item.diff contains a
     # unified diff patch we can hand to the UI.
-    diff_index = base_commit.diff(compare_commit, create_patch=True)
+    diff_index = base_for_diff.diff(compare_commit, create_patch=True)
     if not diff_index:
         return []
 
@@ -236,5 +251,3 @@ def build_project_tree_from_branch_diff(
         file_nodes.append(file_node)
 
     return file_nodes
-
-
