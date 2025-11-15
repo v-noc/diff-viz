@@ -40,7 +40,7 @@ const ProjectTree: FC<ProjectTreeProps> = ({
 }) => {
   const treeData = useMemo(
     () => (nodes && nodes.length > 0 ? nodes : []),
-    //
+
     [nodes]
   );
 
@@ -51,7 +51,7 @@ const ProjectTree: FC<ProjectTreeProps> = ({
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
     const initial = new Set<string>();
     treeData.forEach((node) => initial.add(node.id));
-    //
+
     return initial;
   });
 
@@ -60,6 +60,7 @@ const ProjectTree: FC<ProjectTreeProps> = ({
   const handleToggle = (id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
+
       if (next.has(id)) {
         next.delete(id);
       } else {
