@@ -33,7 +33,7 @@ def parse_code_structure(source_code: str) -> Dict[str, dict]:
             "id": 1,
         }
         req = urllib.request.Request(
-            "http://127.0.0.1:5000/api/v1/jsonrpc",
+            "http://127.0.0.1:3000/api/v1/jsonrpc",
             data=json.dumps(payload).encode("utf-8"),
             headers={"Content-Type": "application/json"},
             method="POST",

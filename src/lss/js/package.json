@@ -4,9 +4,15 @@
   "type": "module",
   "private": true,
   "devDependencies": {
+    "@types/babel__traverse": "^7.28.0",
     "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.28.5",
+    "@babel/traverse": "^7.28.5",
+    "elysia": "^1.4.16"
   }
 }
