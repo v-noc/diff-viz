@@ -100,7 +100,7 @@ def build_project_tree_from_branch_diff(
 
         # Detect language by matching the file extension against
         # LANGUAGE_CONFIG.
-        language = "typescript"
+        language = None
         for ext, lang in EXTENSION_TO_LANGUAGE.items():
             if path.endswith(ext):
                 language = lang
