@@ -90,7 +90,7 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
 
   return (
     <div className="flex h-screen flex-col bg-background">
-      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-6 md:px-8 overflow-hidden">
+      <div className="mx-auto flex w-full  flex-1 flex-col px-4 py-6 md:px-8 overflow-hidden">
         <header className="border-b pb-4">
           <DiffPageHeader
             onBack={onBack}
