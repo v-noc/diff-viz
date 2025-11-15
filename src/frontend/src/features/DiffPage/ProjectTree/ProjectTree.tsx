@@ -40,6 +40,7 @@ const ProjectTree: FC<ProjectTreeProps> = ({
 }) => {
   const treeData = useMemo(
     () => (nodes && nodes.length > 0 ? nodes : []),
+    //
     [nodes]
   );
 
@@ -50,6 +51,7 @@ const ProjectTree: FC<ProjectTreeProps> = ({
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
     const initial = new Set<string>();
     treeData.forEach((node) => initial.add(node.id));
+    //
     return initial;
   });
 
@@ -67,6 +69,8 @@ const ProjectTree: FC<ProjectTreeProps> = ({
     });
   };
 
+  const add = () => {};
+
   const handleSelect = (node: ProjectTreeNode) => {
     if (!controlledSelectedId) {
       setUncontrolledSelectedId(node.id);
@@ -77,7 +81,7 @@ const ProjectTree: FC<ProjectTreeProps> = ({
   const flatCount = useMemo(() => {
     const walk = (items: ProjectTreeNode[]): number =>
       items.reduce(
-        (acc, item) => acc + 1 + (item.children ? walk(item.children) : 0),
+        (acc, item) => acc + 1 + (item.children ? walk(item.children) : 1),
         0
       );
     return walk(treeData);
@@ -105,6 +109,7 @@ const ProjectTree: FC<ProjectTreeProps> = ({
               <Skeleton className="h-3 w-3/4" />
               <Skeleton className="h-3 w-2/3" />
               <Skeleton className="h-3 w-1/2" />
+              <div></div>
               <Skeleton className="h-3 w-2/5" />
             </div>
           ) : treeData.length === 0 ? (
