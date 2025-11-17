@@ -27,10 +27,30 @@ const getIcon = (node: ProjectTreeNode) => {
       return <FileText className="h-3 w-3 text-muted-foreground" />;
     case "function":
       return <FunctionSquare className="h-3 w-3 text-muted-foreground" />;
+
     case "class":
       return <LayoutPanelTop className="h-3 w-3 text-muted-foreground" />;
   }
 };
+
+const formatNodeLabel = (label: string): string => {
+  if (!label || typeof label !== "string") {
+    return "";
+  }
+
+  // Get the last part of the path
+  const parts = label.split("/");
+  const lastPart = parts[parts.length - 1] || "";
+
+  // Truncate if too long
+  const maxLength = 25;
+  if (lastPart.length > maxLength) {
+    return lastPart.slice(0, maxLength) + "...";
+  }
+
+  return lastPart;
+};
+
 const statusToVariant: Record<
   NonNullable<ProjectTreeNode["status"]>,
   "default" | "secondary" | "destructive" | "outline"
@@ -82,20 +102,14 @@ const ProjectTreeItem: FC<ProjectTreeItemProps> = ({
       style={{ paddingLeft: leftPadding }}
     >
       <span className="flex items-center gap-2">
-        {hasChildren ? (
-          isExpanded ? (
+        {hasChildren &&
+          (isExpanded ? (
             <ChevronDown className="h-3 w-3 text-muted-foreground" />
           ) : (
             <ChevronRight className="h-3 w-3 text-muted-foreground" />
-          )
-        ) : (
-          getIcon(node)
-        )}
-        <span className="truncate">
-          {node.label.length > 25
-            ? node.label.slice(0, 25) + "..."
-            : node.label}
-        </span>
+          ))}
+        {getIcon(node)}
+        <span className="truncate">{formatNodeLabel(node.label)}</span>
       </span>
       {node.status && (
         <Badge

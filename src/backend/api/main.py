@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from core.branchs import Branches, get_branches
 from core.diff_to_tree import ProjectTreeNode, diff_to_tree
@@ -14,6 +14,7 @@ class DiffTreeRequest(BaseModel):
     repo_path: str
     base_branch: str
     compare_branch: str
+    tree_mode: str = Field(default="flat")
 
 
 app = FastAPI(title="Backend API")
@@ -49,7 +50,7 @@ async def diff_tree(payload: DiffTreeRequest) -> list[ProjectTreeNode]:
 
     try:
         tree = diff_to_tree(
-            payload.repo_path, payload.base_branch, payload.compare_branch
+            payload.repo_path, payload.base_branch, payload.compare_branch, payload.tree_mode
         )
     except ValueError as exc:
         # Surface a clear 400 error when the path is not a valid git repository
