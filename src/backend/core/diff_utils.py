@@ -132,6 +132,9 @@ def build_project_tree_from_branch_diff(
             content_compare,
         )
 
+        has_conflict = check_conflict_with_merge_tree(
+            repo, base_branch, compare_branch)
+
         struct_base = parse_code_structure(content_base, language)
         struct_compare = parse_code_structure(content_compare, language)
 
@@ -178,6 +181,7 @@ def build_project_tree_from_branch_diff(
         file_node = ProjectTreeNode(
             id=path,
             label=path,
+            has_conflict=has_conflict,
             kind="file",
             status=file_status,
             code_position=CodePosition(
@@ -210,6 +214,7 @@ def build_project_tree_from_branch_diff(
                 label=name.split(".")[-1],
                 kind=def_type,
                 status="added",
+                has_conflict=has_conflict,
                 code_position=make_code_position(info),
                 path=path,
                 source=diff_source,
@@ -231,6 +236,7 @@ def build_project_tree_from_branch_diff(
                 kind=def_type,
                 status="removed",
                 code_position=make_code_position(info),
+                has_conflict=has_conflict,
                 path=path,
                 source=diff_source,
             )
@@ -258,6 +264,7 @@ def build_project_tree_from_branch_diff(
                 code_position=make_code_position(position_source),
                 path=path,
                 source=diff_source,
+                has_conflict=has_conflict,
             )
 
         # Attach nodes to the correct parents based on qualified name.
@@ -329,3 +336,40 @@ def build_project_tree_from_branch_diff(
     _sort_children(root_nodes)
 
     return root_nodes
+
+
+def check_conflict_with_merge_tree(repo: git.Repo, source_branch: str, target_branch: str) -> bool:
+    """
+    Checks for merge conflicts without modifying the working directory.
+    This is the safest method for scripting.
+    """
+    try:
+        # Get the commit objects for the branches
+        target_commit = repo.commit(target_branch)
+        source_commit = repo.commit(source_branch)
+
+        # Find the common ancestor (the merge base)
+        base_commit_list = repo.merge_base(target_commit, source_commit)
+        if not base_commit_list:
+            print("Error: No common ancestor found.")
+            return True  # Treat as a potential issue
+
+        base_commit = base_commit_list[0]
+
+        # Run the merge-tree command
+        # This simulates the merge and outputs the result as text
+        result = repo.git.merge_tree(
+            base_commit.hexsha,
+            target_commit.hexsha,
+            source_commit.hexsha
+        )
+
+        # If the output contains conflict markers, there's a conflict
+        if "<<<<<<<" in result:
+            return True
+        else:
+            print("No conflicts detected using merge-tree.")
+            return False
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return True  # Fail safely
