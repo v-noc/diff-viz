@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import ProjectTreeItem from "./ProjectTreeItem";
 import type { ProjectTreeNode } from "./types";
 import { Toggle } from "@/components/ui/toggle";
-import { FolderTree } from "lucide-react";
+import { FolderTree, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import ProjectTreeFilterPopover from "./ProjectTreeFilterPopover";
 import { filter as rFilter } from "remeda";
@@ -256,6 +256,18 @@ const ProjectTree: FC<ProjectTreeProps> = ({
     return walk(filteredData);
   }, [filteredData]);
 
+  const conflictCount = useMemo(() => {
+    const walk = (items: ProjectTreeNode[]): number =>
+      items.reduce(
+        (acc, item) =>
+          acc +
+          (item.has_conflict ? 1 : 0) +
+          (item.children ? walk(item.children) : 0),
+        0
+      );
+    return walk(treeData);
+  }, [treeData]);
+
   return (
     <div
       className={cn(
@@ -267,9 +279,17 @@ const ProjectTree: FC<ProjectTreeProps> = ({
         <p className="text-xs font-medium text-muted-foreground">
           Function/Class changes
         </p>
-        <span className="text-[10px] text-muted-foreground">
-          {isLoading ? "…" : flatCount}
-        </span>
+        <div className="flex items-center gap-2">
+          {conflictCount > 0 && (
+            <span className="inline-flex items-center rounded-full bg-red-500/10 px-1.5 py-0.5 text-[9px] font-medium text-red-600">
+              <AlertTriangle className="mr-1 h-3 w-3" />
+              {conflictCount}
+            </span>
+          )}
+          <span className="text-[10px] text-muted-foreground">
+            {isLoading ? "…" : flatCount}
+          </span>
+        </div>
       </div>
 
       <div className="border-b px-3 py-2 flex flex-row gap-1 items-center w-full">

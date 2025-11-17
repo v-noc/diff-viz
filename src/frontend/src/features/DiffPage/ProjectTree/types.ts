@@ -36,4 +36,8 @@ export interface ProjectTreeNode {
      * Location of the node in the (new) source file.
      */
     code_position?: CodePosition;
+    /**
+     * Whether this node has a conflict.
+     */
+    has_conflict?: boolean;
 }

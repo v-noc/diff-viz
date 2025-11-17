@@ -1,5 +1,5 @@
 import type { FC } from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { Branches } from "../../type";
 import type { ProjectTreeNode } from "./ProjectTree/types";
 import DiffPageHeader from "./components/DiffPageHeader";
@@ -8,6 +8,8 @@ import BranchSelectionSection from "./components/BranchSelectionSection";
 import DiffViewerSection from "./components/DiffViewerSection";
 import { useDiffTree, useBranchDefaults } from "./hooks";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { AlertTriangle } from "lucide-react";
 
 interface DiffPageProps {
   repoPath: string;
@@ -38,6 +40,20 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
   const [diffViewerType, setDiffViewerType] = useState<
     "monaco" | "react-diff-view"
   >("monaco");
+
+  const conflictCount = useMemo(() => {
+    const walk = (nodes: ProjectTreeNode[]): number =>
+      nodes.reduce(
+        (acc, node) =>
+          acc +
+          (node.has_conflict ? 1 : 0) +
+          (node.children ? walk(node.children) : 0),
+        0
+      );
+    return walk(treeNodes);
+  }, [treeNodes]);
+
+  const selectedHasConflict = !!selectedNode?.has_conflict;
 
   // Update selected node when tree nodes change
   if (treeNodes.length > 0 && !selectedNode) {
@@ -102,12 +118,32 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
               />
 
               <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Diff Viewer:
-                  </p>
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Diff Viewer
+                    </p>
+                    {conflictCount > 0 && (
+                      <Badge
+                        variant="destructive"
+                        className="flex items-center gap-1 px-2 py-0.5 text-[10px]"
+                      >
+                        <AlertTriangle className="h-3 w-3" />
+                        <span>
+                          {conflictCount} conflict
+                          {conflictCount > 1 ? "s" : ""}
+                        </span>
+                      </Badge>
+                    )}
+                    {selectedHasConflict && (
+                      <span className="hidden items-center gap-1 text-[11px] text-destructive sm:inline-flex">
+                        <AlertTriangle className="h-3 w-3" />
+                        Conflict in selected item
+                      </span>
+                    )}
+                  </div>
                   <Button
-                    variant="outline"
+                    variant={selectedHasConflict ? "destructive" : "outline"}
                     size="sm"
                     onClick={handleDiffViewerChange}
                     className="text-xs"
@@ -117,6 +153,15 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
                       : "Switch to Monaco"}
                   </Button>
                 </div>
+                {selectedHasConflict && (
+                  <p className="text-[11px] text-muted-foreground sm:hidden">
+                    <span className="font-medium text-destructive">
+                      Conflict
+                    </span>{" "}
+                    detected in the selected item. Review and resolve the
+                    changes below.
+                  </p>
+                )}
               </div>
 
               <DiffViewerSection

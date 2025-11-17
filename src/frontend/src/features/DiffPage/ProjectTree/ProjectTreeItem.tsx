@@ -6,6 +6,7 @@ import {
   Folder,
   FunctionSquare,
   LayoutPanelTop,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -111,19 +112,30 @@ const ProjectTreeItem: FC<ProjectTreeItemProps> = ({
         {getIcon(node)}
         <span className="truncate">{formatNodeLabel(node.label)}</span>
       </span>
-      {node.status && (
-        <Badge
-          variant={statusToVariant[node.status]}
-          className={cn(
-            "text-[10px]",
-            node.status === "added" && "bg-emerald-500/15 text-emerald-700",
-            node.status === "removed" && "bg-red-500/10",
-            node.status === "modified" && "bg-amber-500/10 text-amber-700"
-          )}
-        >
-          {statusToLabel[node.status]}
-        </Badge>
-      )}
+      <span className="flex items-center gap-1">
+        {node.has_conflict && (
+          <Badge
+            variant="destructive"
+            className="flex items-center gap-1 px-1.5 py-0 text-[9px]"
+          >
+            <AlertTriangle className="h-3 w-3" />
+            Conflict
+          </Badge>
+        )}
+        {node.status && (
+          <Badge
+            variant={statusToVariant[node.status]}
+            className={cn(
+              "text-[10px]",
+              node.status === "added" && "bg-emerald-500/15 text-emerald-700",
+              node.status === "removed" && "bg-red-500/10",
+              node.status === "modified" && "bg-amber-500/10 text-amber-700"
+            )}
+          >
+            {statusToLabel[node.status]}
+          </Badge>
+        )}
+      </span>
     </button>
   );
 
