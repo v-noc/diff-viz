@@ -74,18 +74,6 @@ const DiffViewerSection: FC<DiffViewerSectionProps> = ({
 
       {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
 
-      {selectedHasConflict && viewerType === "monaco" && (
-        <div className="mt-2 rounded-md bg-destructive/10 border border-destructive/30 p-3">
-          <p className="text-xs font-medium text-destructive">
-            ⚠️ Resolve Conflict
-          </p>
-          <p className="text-xs text-destructive/80 mt-1">
-            This item has a merge conflict. Review the changes below and select
-            the version you want to keep.
-          </p>
-        </div>
-      )}
-
       {diffText ? (
         <div className="mt-4 flex-1 overflow-hidden">
           {viewerType === "monaco" ? (
