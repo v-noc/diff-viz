@@ -1,4 +1,5 @@
 import difflib
+from collections import defaultdict
 from typing import List
 
 import git
@@ -58,6 +59,72 @@ def build_file_diff_source(
     return "\n".join(diff_lines)
 
 
+def get_blob_content(repo: git.Repo, commit: git.Commit, path: str) -> str:
+    """Safely get the content of a file from a specific commit."""
+    try:
+        return commit.tree[path].data_stream.read().decode("utf-8")
+    except (KeyError, AttributeError):
+        return ""
+
+
+def analyze_semantic_conflicts(
+    repo: git.Repo,
+    path: str,
+    base_commit: git.Commit,
+    target_commit: git.Commit,
+    source_commit: git.Commit,
+    language: str,
+) -> dict[str, str]:
+    """
+    Analyzes a file for semantic conflicts at the function/class level.
+
+    Returns a dictionary mapping definition names to their status, e.g.,
+    {'my_func': 'conflict', 'other_func': 'modified_on_source'}.
+    """
+    content_base = get_blob_content(repo, base_commit, path)
+    content_target = get_blob_content(repo, target_commit, path)
+    content_source = get_blob_content(repo, source_commit, path)
+
+    # If the file hasn't changed on the target branch, there can be no
+    # conflict. All changes are from the source branch.
+    if content_base == content_target:
+        return defaultdict(lambda: "modified_on_source")
+
+    struct_base = parse_code_structure(content_base, language)
+    struct_target = parse_code_structure(content_target, language)
+    struct_source = parse_code_structure(content_source, language)
+
+    all_keys = (
+        set(struct_base.keys())
+        | set(struct_target.keys())
+        | set(struct_source.keys())
+    )
+    conflict_map = {}
+
+    for name in all_keys:
+        src_base = struct_base.get(name, {}).get("source")
+        src_target = struct_target.get(name, {}).get("source")
+        src_source = struct_source.get(name, {}).get("source")
+
+        changed_on_target = src_base != src_target
+        changed_on_source = src_base != src_source
+
+        if changed_on_target and changed_on_source:
+            # The definition was changed on BOTH branches.
+            # If the final source is different, it's a conflict.
+            if src_target != src_source:
+                conflict_map[name] = "conflict"
+            else:
+                # Convergent change: both branches made the same change.
+                conflict_map[name] = "modified_on_both"
+        elif changed_on_target:
+            conflict_map[name] = "modified_on_target"
+        elif changed_on_source:
+            conflict_map[name] = "modified_on_source"
+
+    return conflict_map
+
+
 def build_project_tree_from_branch_diff(
     repo: git.Repo, base_branch: str, compare_branch: str, tree_mode: str
 ) -> list[ProjectTreeNode]:
@@ -88,6 +155,10 @@ def build_project_tree_from_branch_diff(
     diff_index = base_for_diff.diff(compare_commit, create_patch=True)
     if not diff_index:
         return []
+
+    # Get commits for semantic conflict analysis
+    target_commit = repo.commit(base_branch)
+    source_commit = repo.commit(compare_branch)
 
     # First collect a flat list of file‑level nodes; we'll wrap these in a
     # folder hierarchy once we've processed the whole diff.
@@ -132,8 +203,10 @@ def build_project_tree_from_branch_diff(
             content_compare,
         )
 
-        has_conflict = check_conflict_with_merge_tree(
-            repo, base_branch, compare_branch)
+        # Analyze semantic conflicts at the definition level for this file
+        def_conflict_map = analyze_semantic_conflicts(
+            repo, path, base_for_diff, target_commit, source_commit, language
+        )
 
         struct_base = parse_code_structure(content_base, language)
         struct_compare = parse_code_structure(content_compare, language)
@@ -181,7 +254,8 @@ def build_project_tree_from_branch_diff(
         file_node = ProjectTreeNode(
             id=path,
             label=path,
-            has_conflict=has_conflict,
+            # Files don't have conflicts; only definitions do
+            has_conflict=False,
             kind="file",
             status=file_status,
             code_position=CodePosition(
@@ -209,12 +283,16 @@ def build_project_tree_from_branch_diff(
                 "",
                 info.get("source", ""),
             )
+            # Check if this definition has a conflict
+            conflict_status = def_conflict_map.get(name)
+            has_def_conflict = conflict_status == "conflict"
+
             def_nodes[name] = ProjectTreeNode(
                 id=f"{path}:{name}",
                 label=name.split(".")[-1],
                 kind=def_type,
                 status="added",
-                has_conflict=has_conflict,
+                has_conflict=has_def_conflict,
                 code_position=make_code_position(info),
                 path=path,
                 source=diff_source,
@@ -230,13 +308,17 @@ def build_project_tree_from_branch_diff(
                 info.get("source", ""),
                 "",
             )
+            # Check if this definition has a conflict
+            conflict_status = def_conflict_map.get(name)
+            has_def_conflict = conflict_status == "conflict"
+
             def_nodes[name] = ProjectTreeNode(
                 id=f"{path}:{name}",
                 label=name.split(".")[-1],
                 kind=def_type,
                 status="removed",
                 code_position=make_code_position(info),
-                has_conflict=has_conflict,
+                has_conflict=has_def_conflict,
                 path=path,
                 source=diff_source,
             )
@@ -256,6 +338,11 @@ def build_project_tree_from_branch_diff(
             )
             # Use the "new" position where possible
             position_source = compare_info or base_info
+
+            # Check if this definition has a conflict
+            conflict_status = def_conflict_map.get(name)
+            has_def_conflict = conflict_status == "conflict"
+
             def_nodes[name] = ProjectTreeNode(
                 id=f"{path}:{name}",
                 label=name.split(".")[-1],
@@ -264,7 +351,7 @@ def build_project_tree_from_branch_diff(
                 code_position=make_code_position(position_source),
                 path=path,
                 source=diff_source,
-                has_conflict=has_conflict,
+                has_conflict=has_def_conflict,
             )
 
         # Attach nodes to the correct parents based on qualified name.
@@ -276,7 +363,26 @@ def build_project_tree_from_branch_diff(
             else:
                 children.append(node)
 
+        # Propagate conflicts from children to parents:
+        # If any child has a conflict, mark the parent as conflicted too.
+        def propagate_conflicts(nodes: List[ProjectTreeNode]) -> None:
+            """Propagate conflict status from children to parents."""
+            for node in nodes:
+                if node.children:
+                    propagate_conflicts(node.children)
+                    # If any child has a conflict, mark parent as conflicted
+                    if any(
+                        child.has_conflict for child in node.children
+                    ):
+                        node.has_conflict = True
+
+        propagate_conflicts(children)
+
         file_node.children = children
+        # File also inherits conflicts from its definitions
+        if any(child.has_conflict for child in children):
+            file_node.has_conflict = True
+
         file_nodes.append(file_node)
 
     if tree_mode == "flat":
@@ -336,40 +442,3 @@ def build_project_tree_from_branch_diff(
     _sort_children(root_nodes)
 
     return root_nodes
-
-
-def check_conflict_with_merge_tree(repo: git.Repo, source_branch: str, target_branch: str) -> bool:
-    """
-    Checks for merge conflicts without modifying the working directory.
-    This is the safest method for scripting.
-    """
-    try:
-        # Get the commit objects for the branches
-        target_commit = repo.commit(target_branch)
-        source_commit = repo.commit(source_branch)
-
-        # Find the common ancestor (the merge base)
-        base_commit_list = repo.merge_base(target_commit, source_commit)
-        if not base_commit_list:
-            print("Error: No common ancestor found.")
-            return True  # Treat as a potential issue
-
-        base_commit = base_commit_list[0]
-
-        # Run the merge-tree command
-        # This simulates the merge and outputs the result as text
-        result = repo.git.merge_tree(
-            base_commit.hexsha,
-            target_commit.hexsha,
-            source_commit.hexsha
-        )
-
-        # If the output contains conflict markers, there's a conflict
-        if "<<<<<<<" in result:
-            return True
-        else:
-            print("No conflicts detected using merge-tree.")
-            return False
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return True  # Fail safely

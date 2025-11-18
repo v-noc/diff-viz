@@ -1,6 +1,7 @@
 import type { FC } from "react";
 import { useMemo } from "react";
 import type { ProjectTreeNode } from "../ProjectTree/types";
+import { useConflictResolver } from "../hooks";
 import MonacoDiffViewer from "./MonacoDiffViewer";
 import { Diff, Hunk, parseDiff } from "react-diff-view";
 import "react-diff-view/style/index.css";
@@ -11,6 +12,7 @@ interface DiffViewerSectionProps {
   compareBranch: string;
   isLoading: boolean;
   error: string | null;
+  repoPath?: string;
   viewerType?: "monaco" | "react-diff-view";
 }
 
@@ -20,10 +22,21 @@ const DiffViewerSection: FC<DiffViewerSectionProps> = ({
   compareBranch,
   isLoading,
   error,
+  repoPath = "",
   viewerType = "monaco",
 }) => {
   const diffText = selectedNode?.source ?? "";
   const selectedPath = selectedNode?.path || selectedNode?.label || "";
+  const selectedHasConflict = selectedNode?.has_conflict ?? false;
+
+  // Fetch conflict code when in monaco view and item has conflict
+  const { conflictCode, isLoading: isConflictLoading } = useConflictResolver({
+    repoPath,
+    id: selectedNode?.id || "",
+    baseBranch,
+    compareBranch,
+    enabled: viewerType === "monaco" && selectedHasConflict && !!selectedNode,
+  });
 
   const diffFile = useMemo(() => {
     if (!diffText) return null;
@@ -61,13 +74,28 @@ const DiffViewerSection: FC<DiffViewerSectionProps> = ({
 
       {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
 
+      {selectedHasConflict && viewerType === "monaco" && (
+        <div className="mt-2 rounded-md bg-destructive/10 border border-destructive/30 p-3">
+          <p className="text-xs font-medium text-destructive">
+            ⚠️ Resolve Conflict
+          </p>
+          <p className="text-xs text-destructive/80 mt-1">
+            This item has a merge conflict. Review the changes below and select
+            the version you want to keep.
+          </p>
+        </div>
+      )}
+
       {diffText ? (
         <div className="mt-4 flex-1 overflow-hidden">
           {viewerType === "monaco" ? (
             <MonacoDiffViewer
               diffContent={diffText}
               fileName={selectedPath || "diff.patch"}
-              isLoading={isLoading}
+              isLoading={isLoading || isConflictLoading}
+              isConflict={selectedHasConflict}
+              leftContent={conflictCode?.destCode}
+              rightContent={conflictCode?.sourceCode}
             />
           ) : (
             <div className="h-full overflow-hidden rounded-md border bg-background text-xs">

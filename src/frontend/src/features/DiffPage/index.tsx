@@ -62,6 +62,11 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
     setSelectedNode(null);
   }
 
+  // Reset to react-diff-view if selected node loses conflict status
+  if (!selectedHasConflict && diffViewerType === "monaco") {
+    setDiffViewerType("react-diff-view");
+  }
+
   const handleSwapBranches = () => {
     if (!baseBranch || !compareBranch) return;
     setBaseBranch(compareBranch);
@@ -73,9 +78,15 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
   };
 
   const handleDiffViewerChange = () => {
-    setDiffViewerType(
-      diffViewerType === "monaco" ? "react-diff-view" : "monaco"
-    );
+    // Only allow switching to Monaco if there's a conflict, otherwise force react-diff-view
+    if (selectedHasConflict) {
+      setDiffViewerType(
+        diffViewerType === "monaco" ? "react-diff-view" : "monaco"
+      );
+    } else {
+      // If no conflict, always use react-diff-view
+      setDiffViewerType("react-diff-view");
+    }
   };
 
   return (
@@ -142,26 +153,25 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
                       </span>
                     )}
                   </div>
-                  <Button
-                    variant={selectedHasConflict ? "destructive" : "outline"}
-                    size="sm"
-                    onClick={handleDiffViewerChange}
-                    className="text-xs"
-                  >
-                    {diffViewerType === "monaco"
-                      ? "Switch to React Diff View"
-                      : "Switch to Monaco"}
-                  </Button>
+                  {selectedHasConflict && (
+                    <Button
+                      variant={selectedHasConflict ? "destructive" : "outline"}
+                      size="sm"
+                      onClick={handleDiffViewerChange}
+                      disabled={!selectedHasConflict}
+                      className="text-xs"
+                      title={
+                        selectedHasConflict
+                          ? "Switch between diff viewers"
+                          : "Monaco conflict resolver is only available for items with conflicts"
+                      }
+                    >
+                      {diffViewerType === "monaco"
+                        ? "Switch to React Diff View"
+                        : "Resolve Conflict"}
+                    </Button>
+                  )}
                 </div>
-                {selectedHasConflict && (
-                  <p className="text-[11px] text-muted-foreground sm:hidden">
-                    <span className="font-medium text-destructive">
-                      Conflict
-                    </span>{" "}
-                    detected in the selected item. Review and resolve the
-                    changes below.
-                  </p>
-                )}
               </div>
 
               <DiffViewerSection
@@ -170,6 +180,7 @@ const DiffPage: FC<DiffPageProps> = ({ repoPath, onBack, branches }) => {
                 compareBranch={compareBranch}
                 isLoading={isLoadingDiff}
                 error={diffError}
+                repoPath={repoPath}
                 viewerType={diffViewerType}
               />
             </div>
