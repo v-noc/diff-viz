@@ -24,6 +24,7 @@ class ProjectTreeNode(BaseModel):
     children: List["ProjectTreeNode"] = Field(default_factory=list)
     # Unified diff text (git‑style) for this node or file.
     source: str = ""
+    has_conflict: bool = False
 
 
 def make_code_position(def_info: dict) -> CodePosition:
@@ -34,5 +35,3 @@ def make_code_position(def_info: dict) -> CodePosition:
         start_column=def_info.get("start_column", 0),
         end_column=def_info.get("end_column", 0),
     )
-
-

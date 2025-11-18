@@ -8,6 +8,18 @@ interface DiffTreeRequestBody {
     tree_mode: "flat" | "tree";
 }
 
+interface ConflictResolverRequestBody {
+    repo_path: string;
+    id: string;
+    base_branch: string;
+    compare_branch: string;
+}
+
+interface ConflictResolverResponse {
+    dest_code: string;
+    source_code: string;
+}
+
 async function fetchDiffTree(
     repoPath: string,
     baseBranch: string,
@@ -26,6 +38,23 @@ async function fetchDiffTree(
     });
 }
 
-export { fetchDiffTree };
+async function fetchConflictCode(
+    repoPath: string,
+    id: string,
+    baseBranch: string,
+    compareBranch: string
+): Promise<ConflictResolverResponse> {
+    const body: ConflictResolverRequestBody = {
+        repo_path: repoPath,
+        id,
+        base_branch: baseBranch,
+        compare_branch: compareBranch,
+    };
 
+    return api<ConflictResolverResponse>("/get-dest-compare-code", {
+        body,
+    });
+}
+
+export { fetchDiffTree, fetchConflictCode };
 
